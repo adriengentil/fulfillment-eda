@@ -11,5 +11,6 @@
       condition: event.payload.message == "Ansible is super cool!"
   ## Define the action we should take should the condition be met
       action:
-        run_playbook:
-          name: side.yml
+        run_job_template:
+          name: "Demo Job Template"
+          organization: "Default"
