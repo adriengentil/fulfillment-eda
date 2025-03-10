@@ -1,0 +1,132 @@
+---
+# Ansible Playbook for applying OpenShift Hosted Control Plane Manifest
+# Prerequisites:
+# - Access to an OpenShift cluster with Advanced Cluster Management installed
+# - kubernetes.core collection installed (ansible-galaxy collection install kubernetes.core)
+# - Required permissions to create resources
+# - The hosted control plane manifest file in your working directory
+
+- name: Apply Hosted Control Plane Manifest to OpenShift Cluster with ACM
+  hosts: localhost
+  gather_facts: false
+
+  tasks:
+    - name: Create config map with cluster name in it
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: cluster-name
+            namespace: default
+          data:
+            name: "{{ cluster_name }}"
+      register: config_map_result
+
+    - name: Display config map result
+      ansible.builtin.debug:
+        msg: "{{ config_map_result }}"
+
+    - name: Delete config map with cluster name in it
+      kubernetes.core.k8s:
+        state: absent
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: cluster-name
+            namespace: default
+
+    # - name: Apply each resource from the manifest
+    #   kubernetes.core.k8s:
+    #     kubeconfig: "{{ kubeconfig }}"
+    #     state: present
+    #     definition:
+    #       apiVersion: v1
+    #       kind: Namespace
+    #       metadata:
+    #         name: "{{ aap_namespace }}"
+    #         labels:
+    #           openshift.io/cluster-monitoring: "true"
+
+    # - name: Display apply result
+    #   debug:
+    #     msg: "Successfully applied all resources from the manifest"
+
+    # - name: Extract ManagedCluster name from resources
+    #   set_fact:
+    #     cluster_name: "{{ item.metadata.name }}"
+    #   loop: "{{ resources_list }}"
+    #   when:
+    #     - item is not none
+    #     - item.kind == 'ManagedCluster'
+    #   register: cluster_name_result
+
+    # - name: Set cluster name from extracted resources
+    #   set_fact:
+    #     cluster_name: "{{ (cluster_name_result.results | selectattr('ansible_loop_var', 'defined') | selectattr('ansible_loop_var', 'equalto', 'item') | selectattr('skipped', 'undefined') | list)[0].cluster_name }}"
+    #   when:
+    #     - cluster_name_result.results is defined
+    #     - (cluster_name_result.results | selectattr('ansible_loop_var', 'defined') | selectattr('ansible_loop_var', 'equalto', 'item') | selectattr('skipped', 'undefined') | list) | length > 0
+
+    # - name: Wait for hosted control plane deployment if specified
+    #   when:
+    #     - wait_for_deployment | bool
+    #     - cluster_name is defined
+    #   block:
+    #     - name: Wait for ManagedCluster to become available
+    #       k8s_info:
+    #         kubeconfig: "{{ kubeconfig_path | expanduser }}"
+    #         kind: ManagedCluster
+    #         name: "{{ cluster_name }}"
+    #       register: managed_cluster_status
+    #       until: >
+    #         managed_cluster_status.resources is defined and
+    #         managed_cluster_status.resources | length > 0 and
+    #         managed_cluster_status.resources[0].status.conditions is defined and
+    #         managed_cluster_status.resources[0].status.conditions | selectattr('type', 'equalto', 'ManagedClusterConditionAvailable') | selectattr('status', 'equalto', 'True') | list | length > 0
+    #       retries: 30
+    #       delay: 20
+
+    #     - name: Display success message
+    #       debug:
+    #         msg: "Hosted control plane cluster '{{ cluster_name }}' is now available"
+    #   rescue:
+    #     - name: Report deployment timeout
+    #       debug:
+    #         msg: "Timed out waiting for hosted control plane deployment to complete. Check the status manually with 'oc get managedcluster'"
+
+    # - name: Validate cluster if specified
+    #   when:
+    #     - validate_cluster | bool
+    #     - cluster_name is defined
+    #   block:
+    #     - name: Get ManagedCluster status
+    #       k8s_info:
+    #         kubeconfig: "{{ kubeconfig_path | expanduser }}"
+    #         kind: ManagedCluster
+    #         name: "{{ cluster_name }}"
+    #       register: cluster_status
+
+    #     - name: Display cluster status
+    #       debug:
+    #         msg:
+    #           - "Cluster Name: {{ cluster_status.resources[0].metadata.name }}"
+    #           - "Status: {{ cluster_status.resources[0].status.conditions | selectattr('type', 'equalto', 'ManagedClusterConditionAvailable') | map(attribute='status') | list | first }}"
+    #           - "Message: {{ cluster_status.resources[0].status.conditions | selectattr('type', 'equalto', 'ManagedClusterConditionAvailable') | map(attribute='message') | list | first }}"
+    #       when:
+    #         - cluster_status.resources is defined
+    #         - cluster_status.resources | length > 0
+    #         - cluster_status.resources[0].status.conditions is defined
+
+    #     - name: Get ClusterDeployment resources
+    #       k8s_info:
+    #         kubeconfig: "{{ kubeconfig_path | expanduser }}"
+    #         kind: ClusterDeployment
+    #         namespace: clusters
+    #       register: cluster_deployment
+
+    #     - name: Display ClusterDeployment information
+    #       debug:
+    #         msg: "Found {{ cluster_deployment.resources | length }} ClusterDeployment resources"
