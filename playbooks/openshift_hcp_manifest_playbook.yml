@@ -10,6 +10,10 @@
   hosts: localhost
   gather_facts: false
 
+  vars_prompt:
+    - name: cluster_name
+      prompt: Cluster name
+
   tasks:
     - name: Create config map with cluster name in it
       kubernetes.core.k8s:
