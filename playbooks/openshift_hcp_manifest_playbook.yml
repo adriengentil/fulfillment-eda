@@ -10,9 +10,8 @@
   hosts: localhost
   gather_facts: false
 
-  vars_prompt:
-    - name: cluster_name
-      prompt: Cluster name
+  vars:
+    - cluster_name: test
 
   tasks:
     - name: Create config map with cluster name in it
